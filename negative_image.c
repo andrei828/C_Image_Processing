@@ -5,6 +5,12 @@ int main()
     FILE * in = fopen("image.bmp", "rb");
     FILE * out = fopen("modified_image.bmp", "wb");
 
+    if (in == NULL || out == NULL)
+    {
+        printf("Files could not open");
+        return 0;
+    }
+
     int x, y;
     for (int i = 0; i < 54; i++)
     {
