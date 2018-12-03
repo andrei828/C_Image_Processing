@@ -12,7 +12,7 @@ typedef struct BMP_info {
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key);
 unsigned int * generate_random_sequence(unsigned long sequeance_size, FILE * secret_key);
-void durstenfeld_shuffle(unsigned long * seq, unsigned long size);
+void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size);
 void xorshift32(unsigned int * current_state);
 void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key);
 Pixel * pixel_xor_uint(Pixel * pixel, unsigned int * uint);
@@ -48,7 +48,7 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
     // 2) generate random permutation for the first w*h-1 elements from random sequence
     unsigned long * seq = (unsigned long *) malloc(bitmap_data->width * bitmap_data->height * sizeof(unsigned long)); 
     for (int i = 0; i < bitmap_data->width * bitmap_data->height; i++) seq[i] = i;
-    durstenfeld_shuffle(seq, bitmap_data->width * bitmap_data->height);
+    durstenfeld_shuffle(seq, random_sequence, bitmap_data->width * bitmap_data->height);
 
     // 3) apply permutation to liniar bitmap (call function apply_permutation)
     Pixel * shuffled_bitmap = apply_permutation(image_array, seq, bitmap_data->width * bitmap_data->height);
@@ -115,11 +115,11 @@ Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, 
     return new_image;
 }
 
-void durstenfeld_shuffle(unsigned long * seq, unsigned long size)
+void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size)
 {
    for (int i = size - 1, j; i > 0; i--)
    {
-       j = rand() % i + 1;
+       j = *(random_sequence + i) % i + 1;
        int tmp = seq[i];
        seq[i] = seq[j];
        seq[j] = tmp;
@@ -215,13 +215,13 @@ void load_out_BMP(const char * BMP_name)
 /*
 void inv( int v[], int n)
 {
-    int now, next, prev, i;
-    for( i = 1; i <= n; ++i)
+    int now, next, prev;
+    for(int i = 1; i <= n; i++)
     {
-        if( v[i] < 0){continue;}
+        if (v[i] < 0) { continue; }
         now = v[i];
         prev = i;
-        while( v[now] > 0)
+        while (v[now] > 0)
         {
             next = v[now];
             v[now] = -prev;
@@ -229,9 +229,7 @@ void inv( int v[], int n)
             now = next;
         }
     }
-    for( i = 1; i <= n; ++i)
-    {
+    for (int i = 1; i <= n; ++i)
         v[i] *= -1;
-    }
 }
 */
