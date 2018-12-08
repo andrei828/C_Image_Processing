@@ -27,7 +27,7 @@ unsigned char check_file_error_null(FILE * tmp);
 
 int main()
 {
-    encrypt_file("peppers.bmp", "test.bmp", "secret_key.txt");
+    encrypt_file("peppers.bmp", "enc_peppers.bmp", "secret_key.txt");
 }
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key)
@@ -72,13 +72,13 @@ void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequen
     fscanf(secret_key, "%u", &starting_value);
 
     Pixel * cyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
-    Pixel temp = pixel_xor_uint(shuffled_bitmap[0], starting_value);
-    cyphered_image[0] = pixel_xor_uint(temp, random_sequence[random_sequence_start]);
+    Pixel temp = pixel_xor_uint(*shuffled_bitmap, starting_value);
+    *cyphered_image = pixel_xor_uint(temp, *(random_sequence + random_sequence_start));
 
     for (int i = 1; i < random_sequence_start; i++)
     {
-        temp = pixel_xor_pixel(cyphered_image[i - 1], shuffled_bitmap[i]);
-        cyphered_image[i] = pixel_xor_uint(temp, random_sequence[random_sequence_start + i]);
+        temp = pixel_xor_pixel(*(cyphered_image + i - 1), *(shuffled_bitmap + i));
+        *(cyphered_image + i) = pixel_xor_uint(temp, *(random_sequence + random_sequence_start + i));
     }
 
     fwrite(bitmap_data->header, 54, 1, out);
@@ -122,7 +122,7 @@ Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, 
 void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size)
 {
     for (int i = 0; i < size; i++) seq[i] = i;
-    
+
     for (int i = size - 1, j, tmp; i > 0; i--)
     {
         j = *(random_sequence + size - i) % (i + 1);
@@ -146,9 +146,9 @@ unsigned int * generate_random_sequence(unsigned long sequence_size, FILE * secr
 
 void xorshift32(unsigned int * current_state)
 {
-    *current_state ^= (*current_state << 13);
-    *current_state ^= (*current_state >> 17);
-    *current_state ^= (*current_state << 5);
+    *current_state ^= *current_state << 13;
+    *current_state ^= *current_state >> 17;
+    *current_state ^= *current_state << 5;
 }
 
 BMP_info * get_bitmap_data(FILE * tmp)
@@ -178,16 +178,6 @@ Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data)
             fread(&pixels[i * bitmap_data->width + j].R, 1, 1, tmp);
         }
 
-    FILE * out = fopen("plm.bmp", "wb");
-    fwrite(bitmap_data->header, 54, 1, out);
-    for (int i = bitmap_data->height - 1; i >= 0; i--)
-        for (int j = 0; j < bitmap_data->width; j++)
-        {
-            fwrite(&pixels[i * bitmap_data->width + j].B, 1, 1, out);
-            fwrite(&pixels[i * bitmap_data->width + j].G, 1, 1, out);
-            fwrite(&pixels[i * bitmap_data->width + j].R, 1, 1, out);
-        }
-    fclose(out);
     return pixels;
 }
 
