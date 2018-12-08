@@ -15,9 +15,9 @@ unsigned int * generate_random_sequence(unsigned long sequeance_size, FILE * sec
 void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size);
 void xorshift32(unsigned int * current_state);
 void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key);
-Pixel * pixel_xor_uint(Pixel * pixel, unsigned int * uint);
-Pixel * pixel_xor_pixel(Pixel * pixel1, Pixel * pixel2);
-Pixel * liniar_bitmap(FILE * tmp, unsigned long size);
+Pixel pixel_xor_uint(Pixel pixel, unsigned int uint);
+Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2);
+Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data);
 Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, unsigned long size);
 BMP_info * get_bitmap_data(FILE * tmp);
 
@@ -38,22 +38,21 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
     
     if ((check_file_error_null(in) & 1) == 1 || (check_file_error_null(out) & 1) == 1 || (check_file_error_null(key) & 1) == 1) return; 
 
-    // get data from initial bitmap
+    // 0) get data from initial bitmap
     BMP_info * bitmap_data = get_bitmap_data(in);
-    Pixel * image_array = liniar_bitmap(in, bitmap_data->width * bitmap_data->height);
-    
+    Pixel * image_array = liniar_bitmap(in, bitmap_data);
+
     // 1) generate random sequeance of 2*w*h-1 elements with xorshift32
-    unsigned int * random_sequence = generate_random_sequence(2 * bitmap_data->width * bitmap_data->height , key);
+    unsigned int * random_sequence = generate_random_sequence(2 * bitmap_data->width * bitmap_data->height, key);
     
     // 2) generate random permutation for the first w*h-1 elements from random sequence
     unsigned long * seq = (unsigned long *) malloc(bitmap_data->width * bitmap_data->height * sizeof(unsigned long)); 
-    for (int i = 0; i < bitmap_data->width * bitmap_data->height; i++) seq[i] = i;
     durstenfeld_shuffle(seq, random_sequence, bitmap_data->width * bitmap_data->height);
 
-    // 3) apply permutation to liniar bitmap (call function apply_permutation)
+    // 3) apply permutation to liniar bitmap
     Pixel * shuffled_bitmap = apply_permutation(image_array, seq, bitmap_data->width * bitmap_data->height);
     
-    // 4) create cyphered image (call the create_cyphered_image function)
+    // 4) create cyphered image
     create_cyphered_image(shuffled_bitmap, random_sequence, bitmap_data, out, key);
 
     fclose(in);
@@ -69,41 +68,46 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
 void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key)
 {
     unsigned int starting_value;
-    unsigned long random_sequence_start = (*bitmap_data).width * (*bitmap_data).height;
+    unsigned long random_sequence_start = bitmap_data->width * bitmap_data->height;
     fscanf(secret_key, "%u", &starting_value);
-    Pixel * cyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
-    *cyphered_image = *pixel_xor_uint(pixel_xor_uint(shuffled_bitmap, &starting_value), random_sequence + random_sequence_start);
 
-    fwrite(bitmap_data->header, 54, 1, out);
-    fwrite(&(*cyphered_image).R, 1, 1, out);
-    fwrite(&(*cyphered_image).G, 1, 1, out);
-    fwrite(&(*cyphered_image).B, 1, 1, out);
+    Pixel * cyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
+    Pixel temp = pixel_xor_uint(shuffled_bitmap[0], starting_value);
+    cyphered_image[0] = pixel_xor_uint(temp, random_sequence[random_sequence_start]);
+
     for (int i = 1; i < random_sequence_start; i++)
     {
-        *(cyphered_image + i) = *pixel_xor_uint(pixel_xor_pixel(cyphered_image + i - 1, shuffled_bitmap + i), random_sequence + random_sequence_start + i);
-        fwrite(&cyphered_image[i].R, 1, 1, out);
-        fwrite(&cyphered_image[i].G, 1, 1, out);
-        fwrite(&cyphered_image[i].B, 1, 1, out);
+        temp = pixel_xor_pixel(cyphered_image[i - 1], shuffled_bitmap[i]);
+        cyphered_image[i] = pixel_xor_uint(temp, random_sequence[random_sequence_start + i]);
     }
+
+    fwrite(bitmap_data->header, 54, 1, out);
+    for (int i = bitmap_data->height - 1; i >= 0; i--)
+        for (int j = 0; j < bitmap_data->width; j++)
+        {
+            fwrite(&cyphered_image[i * bitmap_data->width + j].B, 1, 1, out);
+            fwrite(&cyphered_image[i * bitmap_data->width + j].G, 1, 1, out);
+            fwrite(&cyphered_image[i * bitmap_data->width + j].R, 1, 1, out);
+        }
 }
 
-Pixel * pixel_xor_uint(Pixel * pixel, unsigned int * uint)
+Pixel pixel_xor_uint(Pixel pixel, unsigned int uint)
 {
-    Pixel * new_Pixel = (Pixel *) malloc(sizeof(Pixel));
-    new_Pixel->B = (*pixel).B ^ (*uint & 15);
-    *uint >>= 4;
-    new_Pixel->G = (*pixel).G ^ (*uint % 15);
-    *uint >>= 4;
-    new_Pixel->R = (*pixel).R ^ (*uint % 15);
+    Pixel new_Pixel;
+    new_Pixel.B = pixel.B ^ (uint & 255);
+    uint >>= 8;
+    new_Pixel.G = pixel.G ^ (uint & 255);
+    uint >>= 8;
+    new_Pixel.R = pixel.R ^ (uint & 255);
     return new_Pixel;
 }
 
-Pixel * pixel_xor_pixel(Pixel * pixel1, Pixel * pixel2)
+Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2)
 {
-    Pixel * new_Pixel = (Pixel *) malloc(sizeof(Pixel));
-    new_Pixel->R = pixel1->R ^ pixel2->R;
-    new_Pixel->G = pixel1->G ^ pixel2->G;
-    new_Pixel->B = pixel1->B ^ pixel2->B;
+    Pixel new_Pixel;
+    new_Pixel.R = pixel1.R ^ pixel2.R;
+    new_Pixel.G = pixel1.G ^ pixel2.G;
+    new_Pixel.B = pixel1.B ^ pixel2.B;
     return new_Pixel;
 }
 
@@ -117,21 +121,22 @@ Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, 
 
 void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size)
 {
-   for (int i = size - 1, j; i > 0; i--)
-   {
-       j = *(random_sequence + i) % i + 1;
-       int tmp = seq[i];
-       seq[i] = seq[j];
-       seq[j] = tmp;
-   }
+    for (int i = 0; i < size; i++) seq[i] = i;
+    
+    for (int i = size - 1, j, tmp; i > 0; i--)
+    {
+        j = *(random_sequence + size - i) % (i + 1);
+        tmp = seq[i];
+        seq[i] = seq[j];
+        seq[j] = tmp;
+    }
 }
 
 unsigned int * generate_random_sequence(unsigned long sequence_size, FILE * secret_key)
 {
-    unsigned int temp_random, * sequence = (unsigned int *) malloc(sequence_size * sizeof(unsigned int));
+    unsigned int * sequence = (unsigned int *) malloc(sequence_size * sizeof(unsigned int));
     fscanf(secret_key, "%u", sequence);
-
-    for (unsigned long i = 0; i < sequence_size-1; i++)
+    for (unsigned long i = 0; i < sequence_size - 1; i++)
     {
         *(sequence + i + 1) = *(sequence + i);
         xorshift32(sequence + i + 1);
@@ -141,9 +146,9 @@ unsigned int * generate_random_sequence(unsigned long sequence_size, FILE * secr
 
 void xorshift32(unsigned int * current_state)
 {
-    *current_state ^= *current_state << 13;
-    *current_state ^= *current_state >> 17;
-    *current_state ^= *current_state << 5;
+    *current_state ^= (*current_state << 13);
+    *current_state ^= (*current_state >> 17);
+    *current_state ^= (*current_state << 5);
 }
 
 BMP_info * get_bitmap_data(FILE * tmp)
@@ -159,16 +164,30 @@ BMP_info * get_bitmap_data(FILE * tmp)
     return bitmap_data;
 }
 
-Pixel * liniar_bitmap(FILE * tmp, unsigned long size)
+Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data)
 {
+    unsigned long size = bitmap_data->width * bitmap_data->height;
     Pixel * pixels = (Pixel *) malloc(size * sizeof(Pixel));
     fseek(tmp, 54, SEEK_SET);
-    for (unsigned long i = 0; i < size; i++)
-    {
-        fread(&pixels[i].R, 1, 1, tmp);
-        fread(&pixels[i].G, 1, 1, tmp);
-        fread(&pixels[i].B, 1, 1, tmp);
-    }
+
+    for (int i = bitmap_data->height - 1; i >= 0; i--)
+        for (int j = 0; j < bitmap_data->width; j++)
+        {
+            fread(&pixels[i * bitmap_data->width + j].B, 1, 1, tmp);
+            fread(&pixels[i * bitmap_data->width + j].G, 1, 1, tmp);
+            fread(&pixels[i * bitmap_data->width + j].R, 1, 1, tmp);
+        }
+
+    FILE * out = fopen("plm.bmp", "wb");
+    fwrite(bitmap_data->header, 54, 1, out);
+    for (int i = bitmap_data->height - 1; i >= 0; i--)
+        for (int j = 0; j < bitmap_data->width; j++)
+        {
+            fwrite(&pixels[i * bitmap_data->width + j].B, 1, 1, out);
+            fwrite(&pixels[i * bitmap_data->width + j].G, 1, 1, out);
+            fwrite(&pixels[i * bitmap_data->width + j].R, 1, 1, out);
+        }
+    fclose(out);
     return pixels;
 }
 
