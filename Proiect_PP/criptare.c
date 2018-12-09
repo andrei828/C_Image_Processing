@@ -31,9 +31,42 @@ Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, 
 void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key);
 Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * secret_key);
 
+void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
+float * chi_squared_result(Pixel * bitmap_array, unsigned long size);
 int main()
 {
-    decrypt_file("enc_peppers_ok.bmp", "test.bmp", "secret_key.txt");
+    encrypt_file("peppers.bmp", "test.bmp", "secret_key.txt");
+}
+
+void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size)
+{
+    float * original_chi_squared = chi_squared_result(original_bitmap, size);
+    float * encrypted_chi_squared = chi_squared_result(encrypted_bitmap, size);
+    printf("chi squared test for initial bitmap: (%.2f, %.2f, %.2f)\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
+    printf("chi squared test for encrypted bitmap: (%.2f, %.2f, %.2f)\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
+}
+
+float * chi_squared_result(Pixel * bitmap_array, unsigned long size)
+{
+    float theoretical_frequency = size / 256;
+    float * chi_squared = (float *) calloc(3, sizeof(float));
+    unsigned long * R = (unsigned long *) calloc(255, sizeof(unsigned long));
+    unsigned long * G = (unsigned long *) calloc(255, sizeof(unsigned long));
+    unsigned long * B = (unsigned long *) calloc(255, sizeof(unsigned long));
+    for (int i = 0; i < size; i++)
+    {
+        R[bitmap_array[i].R]++;
+        G[bitmap_array[i].G]++;
+        B[bitmap_array[i].B]++;
+    }
+
+    for (int i = 0; i < 255; i++)
+    {
+        chi_squared[0] += (R[i] - theoretical_frequency) * (R[i] - theoretical_frequency) / theoretical_frequency;
+        chi_squared[1] += (G[i] - theoretical_frequency) * (G[i] - theoretical_frequency) / theoretical_frequency;
+        chi_squared[2] += (B[i] - theoretical_frequency) * (B[i] - theoretical_frequency) / theoretical_frequency;        
+    }
+    return chi_squared;
 }
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key)
