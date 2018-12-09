@@ -10,7 +10,6 @@ typedef struct BMP_info {
     unsigned char * header;
 } BMP_info;
 
-
 void load_out_BMP(const char * BMP_name);
 unsigned char check_file_error_null(FILE * tmp);
 unsigned char * load_in_BMP(const char * BMP_name);
