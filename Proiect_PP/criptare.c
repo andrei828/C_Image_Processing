@@ -14,6 +14,8 @@ typedef struct BMP_info {
 void load_out_BMP(const char * BMP_name);
 unsigned char check_file_error_null(FILE * tmp);
 unsigned char * load_in_BMP(const char * BMP_name);
+float * chi_squared_result(Pixel * bitmap_array, unsigned long size);
+void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key);
 void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char * secret_key);
@@ -28,11 +30,9 @@ void display_result_image(FILE * out, Pixel * image_array, BMP_info * bitmap_dat
 unsigned int * generate_random_sequence(unsigned long sequeance_size, FILE * secret_key);
 void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, unsigned long size);
 Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, unsigned long size);
-void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key);
 Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * secret_key);
+void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * out, FILE * secret_key);
 
-void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
-float * chi_squared_result(Pixel * bitmap_array, unsigned long size);
 int main()
 {
     encrypt_file("peppers.bmp", "test.bmp", "secret_key.txt");
@@ -59,7 +59,6 @@ float * chi_squared_result(Pixel * bitmap_array, unsigned long size)
         G[bitmap_array[i].G]++;
         B[bitmap_array[i].B]++;
     }
-
     for (int i = 0; i < 255; i++)
     {
         chi_squared[0] += (R[i] - theoretical_frequency) * (R[i] - theoretical_frequency) / theoretical_frequency;
