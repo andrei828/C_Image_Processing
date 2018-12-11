@@ -13,7 +13,7 @@ typedef struct BMP_info {
 void load_out_BMP(const char * BMP_name);
 unsigned char check_file_error_null(FILE * tmp);
 unsigned char * load_in_BMP(const char * BMP_name);
-float * chi_squared_result(Pixel * bitmap_array, unsigned long size);
+double * chi_squared_result(Pixel * bitmap_array, unsigned long size);
 void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key);
@@ -39,16 +39,16 @@ int main()
 
 void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size)
 {
-    float * original_chi_squared = chi_squared_result(original_bitmap, size);
-    float * encrypted_chi_squared = chi_squared_result(encrypted_bitmap, size);
+    double * original_chi_squared = chi_squared_result(original_bitmap, size);
+    double * encrypted_chi_squared = chi_squared_result(encrypted_bitmap, size);
     printf("chi squared test for initial bitmap: (%.2f, %.2f, %.2f)\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
     printf("chi squared test for encrypted bitmap: (%.2f, %.2f, %.2f)\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
 }
 
-float * chi_squared_result(Pixel * bitmap_array, unsigned long size)
+double * chi_squared_result(Pixel * bitmap_array, unsigned long size)
 {
-    float theoretical_frequency = size / 256;
-    float * chi_squared = (float *) calloc(3, sizeof(float));
+    double theoretical_frequency = size / 256;
+    double * chi_squared = (double *) calloc(3, sizeof(double));
     unsigned long * R = (unsigned long *) calloc(255, sizeof(unsigned long));
     unsigned long * G = (unsigned long *) calloc(255, sizeof(unsigned long));
     unsigned long * B = (unsigned long *) calloc(255, sizeof(unsigned long));
@@ -88,7 +88,7 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
 
     // 3) apply permutation to liniar bitmap
     Pixel * shuffled_bitmap = apply_permutation(image_array, seq, bitmap_data->width * bitmap_data->height);
-    
+
     // 4) create cyphered image
     create_cyphered_image(shuffled_bitmap, random_sequence, bitmap_data, out, key);
 
@@ -136,14 +136,10 @@ void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequen
     fscanf(secret_key, "%u", &starting_value);
 
     Pixel * cyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
-    Pixel temp = pixel_xor_uint(*shuffled_bitmap, starting_value);
-    *cyphered_image = pixel_xor_uint(temp, *(random_sequence + random_sequence_start));
+    *cyphered_image = pixel_xor_uint(pixel_xor_uint(*shuffled_bitmap, starting_value), *(random_sequence + random_sequence_start));
 
     for (int i = 1; i < random_sequence_start; i++)
-    {
-        temp = pixel_xor_pixel(*(cyphered_image + i - 1), *(shuffled_bitmap + i));
-        *(cyphered_image + i) = pixel_xor_uint(temp, *(random_sequence + random_sequence_start + i));
-    }
+        *(cyphered_image + i) = pixel_xor_uint(pixel_xor_pixel(*(cyphered_image + i - 1), *(shuffled_bitmap + i)), *(random_sequence + random_sequence_start + i));
 
     display_result_image(out, cyphered_image, bitmap_data);
 }
@@ -155,14 +151,11 @@ Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_s
     fscanf(secret_key, "%u", &starting_value);
 
     Pixel * decyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
-    Pixel temp = pixel_xor_uint(*cyphered_bitmap, starting_value);
-    *decyphered_image = pixel_xor_uint(temp, *(random_sequence + random_sequence_start));
+    *decyphered_image = pixel_xor_uint(pixel_xor_uint(*cyphered_bitmap, starting_value), *(random_sequence + random_sequence_start));
 
     for (int i = 1; i < random_sequence_start; i++)
-    {
-        temp = pixel_xor_pixel(*(cyphered_bitmap + i - 1), *(cyphered_bitmap + i));
-        *(decyphered_image + i) = pixel_xor_uint(temp, *(random_sequence + random_sequence_start + i));
-    }
+        *(decyphered_image + i) = pixel_xor_uint(pixel_xor_pixel(*(cyphered_bitmap + i - 1), *(cyphered_bitmap + i)), *(random_sequence + random_sequence_start + i));
+    
     return decyphered_image;
 }
 
@@ -182,10 +175,8 @@ Pixel pixel_xor_uint(Pixel pixel, unsigned int uint)
 {
     Pixel new_Pixel;
     new_Pixel.B = pixel.B ^ (uint & 255);
-    uint >>= 8;
-    new_Pixel.G = pixel.G ^ (uint & 255);
-    uint >>= 8;
-    new_Pixel.R = pixel.R ^ (uint & 255);
+    new_Pixel.G = pixel.G ^ ((uint >> 8) & 255);
+    new_Pixel.R = pixel.R ^ ((uint >> 16) & 255);
     return new_Pixel;
 }
 
@@ -201,13 +192,9 @@ Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2)
 unsigned long * inverse_permutation(unsigned long * sequeance, unsigned long size) 
 {
     unsigned long * result = (unsigned long *) malloc(size * sizeof(unsigned long));
-    for (int i = 0; i < size; i++) 
-        for (int j = 0; j < size; j++) 
-            if (*(sequeance + j) == i) 
-            {  
-                result[i] = j; 
-                break; 
-            } 
+
+    for (int i = 0; i < size; i++)
+        *(result + *(sequeance + i)) = i;
     return result;
 }
 
@@ -277,7 +264,6 @@ Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data)
             fread(&pixels[i * bitmap_data->width + j].G, 1, 1, tmp);
             fread(&pixels[i * bitmap_data->width + j].R, 1, 1, tmp);
         }
-
     return pixels;
 }
 
