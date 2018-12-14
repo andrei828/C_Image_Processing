@@ -58,7 +58,7 @@ double * chi_squared_result(Pixel * bitmap_array, unsigned long size)
         G[bitmap_array[i].G]++;
         B[bitmap_array[i].B]++;
     }
-    for (int i = 0; i < 255; i++)
+    for (int i = 0; i < 256; i++)
     {
         chi_squared[0] += (R[i] - theoretical_frequency) * (R[i] - theoretical_frequency) / theoretical_frequency;
         chi_squared[1] += (G[i] - theoretical_frequency) * (G[i] - theoretical_frequency) / theoretical_frequency;
