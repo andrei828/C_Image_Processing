@@ -92,7 +92,7 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
     // 4) create cyphered image
     create_cyphered_image(shuffled_bitmap, random_sequence, bitmap_data, out, key);
 
-    // closing and freeing memory
+    // closing files and freeing memory
     fclose(in); fclose(out); fclose(key);
     free(seq); free(bitmap_data); free(image_array); free(random_sequence); free(shuffled_bitmap);
 }
@@ -124,7 +124,7 @@ void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char
     Pixel * decyphered_image_result = apply_permutation(decyphered_image, seq, bitmap_data->width * bitmap_data->height);
     display_result_image(out, decyphered_image_result, bitmap_data);
     
-    // closing and freeing memory
+    // closing files and freeing memory
     fclose(in); fclose(out); fclose(key);
     free(seq); free(bitmap_data); free(image_array); free(random_sequence); free(decyphered_image); free(decyphered_image_result);
 }
@@ -280,8 +280,7 @@ unsigned char check_file_error_null(FILE * tmp)
 unsigned char * load_in_BMP(const char * BMP_name)
 {
     FILE * BMP_file = fopen(BMP_name, "rb");
-    if ((check_file_error_null(BMP_file) & 1) == 1)
-        return NULL;
+    if ((check_file_error_null(BMP_file) & 1) == 1) return NULL;
 
     BMP_info * bitmap_data = get_bitmap_data(BMP_file);
     fseek(BMP_file, 54, SEEK_SET);
