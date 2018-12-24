@@ -12,6 +12,7 @@ typedef struct BMP_info {
 
 void load_out_BMP(const char * BMP_name);
 unsigned char check_file_error_null(FILE * tmp);
+unsigned char check_memory_allocation(const void * data);
 unsigned char * load_in_BMP(const char * BMP_name);
 double * chi_squared_result(Pixel * bitmap_array, unsigned long size);
 void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
@@ -84,6 +85,7 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
     
     // 2) generate random permutation for the first w*h-1 elements from random sequence
     unsigned long * seq = (unsigned long *) malloc(bitmap_data->width * bitmap_data->height * sizeof(unsigned long)); 
+    if (check_memory_allocation(seq)) return;
     durstenfeld_shuffle(seq, random_sequence, bitmap_data->width * bitmap_data->height);
 
     // 3) apply permutation to liniar bitmap
@@ -103,7 +105,7 @@ void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char
     FILE * out = fopen(BMP_decrypt, "wb");
     FILE * key = fopen(secret_key, "r");
 
-    if ((check_file_error_null(in) & 1) == 1 || (check_file_error_null(out) & 1) == 1 || (check_file_error_null(key) & 1) == 1) return;
+    if (check_file_error_null(in) || check_file_error_null(out) || check_file_error_null(key)) return;
 
     // 0) get data from encrypted file
     BMP_info * bitmap_data = get_bitmap_data(in);
@@ -114,6 +116,7 @@ void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char
 
     // 2) generate random permutation for the first w*h-1 elements from random sequence
     unsigned long * seq = (unsigned long *) malloc(bitmap_data->width * bitmap_data->height * sizeof(unsigned long)); 
+    if (check_memory_allocation(seq)) return;
     durstenfeld_shuffle(seq, random_sequence, bitmap_data->width * bitmap_data->height);
     seq = inverse_permutation(seq, bitmap_data->width * bitmap_data->height); // bad
 
@@ -136,6 +139,7 @@ void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequen
     fscanf(secret_key, "%u", &starting_value);
 
     Pixel * cyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
+    if (check_memory_allocation(cyphered_image)) return;
     *cyphered_image = pixel_xor_uint(pixel_xor_uint(*shuffled_bitmap, starting_value), *(random_sequence + random_sequence_start));
 
     for (int i = 1; i < random_sequence_start; i++)
@@ -151,6 +155,7 @@ Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_s
     fscanf(secret_key, "%u", &starting_value);
 
     Pixel * decyphered_image = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
+    if (check_memory_allocation(decyphered_image)) return NULL;
     *decyphered_image = pixel_xor_uint(pixel_xor_uint(*cyphered_bitmap, starting_value), *(random_sequence + random_sequence_start));
 
     for (int i = 1; i < random_sequence_start; i++)
@@ -200,7 +205,7 @@ Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2)
 unsigned long * inverse_permutation(unsigned long * sequeance, unsigned long size) 
 {
     unsigned long * result = (unsigned long *) malloc(size * sizeof(unsigned long));
-
+    if (check_memory_allocation(result)) return NULL;
     for (int i = 0; i < size; i++)
         *(result + *(sequeance + i)) = i;
     return result;
@@ -209,6 +214,7 @@ unsigned long * inverse_permutation(unsigned long * sequeance, unsigned long siz
 Pixel * apply_permutation(Pixel * original_bitmap, unsigned long * permutation, unsigned long size)
 {
     Pixel * new_image = (Pixel *) malloc(size * sizeof(Pixel));
+    if (check_memory_allocation(new_image)) return NULL;
     for (unsigned long i = 0; i < size; i++)
         *(new_image + *(permutation + i)) = *(original_bitmap + i);
     return new_image;
@@ -230,6 +236,7 @@ void durstenfeld_shuffle(unsigned long * seq, unsigned int * random_sequence, un
 unsigned int * generate_random_sequence(unsigned long sequence_size, FILE * secret_key)
 {
     unsigned int * sequence = (unsigned int *) malloc(sequence_size * sizeof(unsigned int));
+    if (check_memory_allocation(sequence)) return NULL;
     fscanf(secret_key, "%u", sequence);
     for (unsigned long i = 0; i < sequence_size - 1; i++)
     {
@@ -249,7 +256,9 @@ void xorshift32(unsigned int * current_state)
 BMP_info * get_bitmap_data(FILE * tmp)
 {
     BMP_info * bitmap_data = (BMP_info *) malloc(sizeof(BMP_info));
+    if (check_memory_allocation(bitmap_data)) return NULL;
     bitmap_data->header = (unsigned char *) malloc(54 * sizeof(unsigned char));
+    if (check_memory_allocation(bitmap_data->header)) return NULL;
     fread(bitmap_data->header, 54, 1, tmp);
     fseek(tmp, 2, SEEK_SET);
     fread(&(bitmap_data->num_bytes), sizeof(unsigned int), 1, tmp);
@@ -263,6 +272,7 @@ Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data)
 {
     unsigned long size = bitmap_data->width * bitmap_data->height;
     Pixel * pixels = (Pixel *) malloc(size * sizeof(Pixel));
+    if (check_memory_allocation(pixels)) return NULL;
     fseek(tmp, 54, SEEK_SET);
 
     int padding;
@@ -292,20 +302,26 @@ unsigned char check_file_error_null(FILE * tmp)
     return 0;
 }
 
+unsigned char check_memory_allocation(const void * data)
+{
+    if (!data)
+    {
+        printf("Couldn't allocate memory");
+        return 1;
+    }
+    return 0;
+}
+
 unsigned char * load_in_BMP(const char * BMP_name)
 {
     FILE * BMP_file = fopen(BMP_name, "rb");
-    if ((check_file_error_null(BMP_file) & 1) == 1) return NULL;
+    if (check_file_error_null(BMP_file)) return NULL;
 
     BMP_info * bitmap_data = get_bitmap_data(BMP_file);
     fseek(BMP_file, 54, SEEK_SET);
 
     unsigned char * BMP_liniar = (unsigned char *) malloc(bitmap_data->width * bitmap_data->height);
-    if (!BMP_liniar)
-    {
-        printf("\nCouldn't allocate memory for linearization\n");
-        return NULL;
-    }
+    if (check_memory_allocation(BMP_liniar)) return NULL;
     fread(BMP_liniar, bitmap_data -> num_bytes - 54, 1, BMP_file);
     fclose(BMP_file);
     return BMP_liniar;
@@ -314,9 +330,5 @@ unsigned char * load_in_BMP(const char * BMP_name)
 void load_out_BMP(const char * BMP_name)
 {
     FILE * BMP_file = fopen(BMP_name, "wb");
-    if (!BMP_file)
-    {
-        printf("\nCouldn't find BMP image\n");
-        return;
-    }
+    if (check_memory_allocation(BMP_file)) return;
 }
