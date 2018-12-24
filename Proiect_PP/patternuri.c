@@ -1,7 +1,7 @@
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <math.h>
 
 #define RED 0
 #define YELLOW 1
@@ -42,36 +42,34 @@ typedef struct BMP_info {
     unsigned char * header;
 } BMP_info;
 
-Pixel * init_color_palette();
-BMP_info * get_bitmap_data(FILE * tmp, short digit);
 void recongnize_patterns(int num_of_arguments, ...);
-void display_result_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out);
+
+BMP_info * get_bitmap_data(FILE * tmp, short digit);
 Pixel ** load_image(FILE * tmp, BMP_info * bitmap_data);
+void push(Window_List ** start_window, Window * add_window);
+void display_result_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out);
 void remove_overlaps(Window * window_array, unsigned long ** num_of_windows, BMP_info * template_data);
 void border_window(Pixel ** main_image, Window * window_center, BMP_info * template_data, Pixel * color);
 void add_borders(Pixel ** main_image, Window * patterns_found, BMP_info * template_data, unsigned long num_of_windows);
-void init_coords_for_window(unsigned int * start_i, unsigned int * start_j, unsigned int * end_i, unsigned int * end_j, Window * window_center, BMP_info * template_data);
+
 int compare_correlations(const void * Window1, const void * Window2);
 double overlap(Window Window1, Window Window2, BMP_info * template_data);
 unsigned long reunion(Window Window1, Window Window2, BMP_info * template_data);
 unsigned long intersection(Window Window1, Window Window2, BMP_info * template_data);
-Window * remove_non_maxims(Size_of_Window_List * size_of_window_list[], BMP_info * template_data, unsigned long * num_of_correlations, short num_of_digits);
 Window * create_array_correlations(Size_of_Window_List * size_of_window_list[], unsigned long num_of_correlations, short num_of_digits);
+Window * remove_non_maxims(Size_of_Window_List * size_of_window_list[], BMP_info * template_data, unsigned long * num_of_correlations, short num_of_digits);
 
 double template_average_grayscale_intensity(Pixel ** template_image, BMP_info * template_data);
 double main_average_grayscale_intensity(Pixel ** main_image, Window * window_center, BMP_info * template_data);
 double template_deviation_of_pixel_intensity(Pixel ** template_image, BMP_info * template_data, double average_intensity);
 double main_deviation_of_pixel_intensity(Pixel ** main_image, Window * window_center, BMP_info * template_data, double average_intensity);
-
 Size_of_Window_List * calculate_correlation(Pixel ** main_image, Pixel ** template_image, BMP_info * main_image_data, BMP_info * template_image_data, double precision);
 
-void free_memory(Pixel ** main_image, Pixel *** template_images, BMP_info * main_bitmap_data, BMP_info * templates_bitmap_data[], Window * patterns_found, short num_of_digits);
+Pixel * init_color_palette();
 unsigned char check_file_error_null(FILE * tmp);
 unsigned char check_memory_allocation(const void * data);
-
-// function to add Window to linked list
-void push(Window_List ** start_window, Window * add_window);
-
+void init_coords_for_window(unsigned int * start_i, unsigned int * start_j, unsigned int * end_i, unsigned int * end_j, Window * window_center, BMP_info * template_data);
+void free_memory(Pixel ** main_image, Pixel *** template_images, BMP_info * main_bitmap_data, BMP_info * templates_bitmap_data[], Window * patterns_found, short num_of_digits);
 
 int main()
 {
