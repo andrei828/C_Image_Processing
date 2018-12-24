@@ -73,7 +73,7 @@ void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char
     FILE * out = fopen(BMP_encrypt, "wb");
     FILE * key = fopen(secret_key, "r");
      
-    if ((check_file_error_null(in) & 1) == 1 || (check_file_error_null(out) & 1) == 1 || (check_file_error_null(key) & 1) == 1) return;
+    if ((check_file_error_null(in)) || (check_file_error_null(out)) || (check_file_error_null(key))) return;
 
     // 0) get data from initial bitmap
     BMP_info * bitmap_data = get_bitmap_data(in);
@@ -161,14 +161,22 @@ Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_s
 
 void display_result_image(FILE * out, Pixel * image_array, BMP_info * bitmap_data)
 {
+    int padding;
+    if (bitmap_data->width % 4 != 0) padding = 4 - (3 * bitmap_data->width) % 4;
+    else padding = 0;
+    unsigned char BLANK = 0;
+
     fwrite(bitmap_data->header, 54, 1, out);
     for (int i = bitmap_data->height - 1; i >= 0; i--)
+    {
         for (int j = 0; j < bitmap_data->width; j++)
         {
             fwrite(&image_array[i * bitmap_data->width + j].B, 1, 1, out);
             fwrite(&image_array[i * bitmap_data->width + j].G, 1, 1, out);
             fwrite(&image_array[i * bitmap_data->width + j].R, 1, 1, out);
         }
+        fwrite(&BLANK, 1, padding, out);
+    }
 }
 
 Pixel pixel_xor_uint(Pixel pixel, unsigned int uint)
@@ -257,13 +265,20 @@ Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data)
     Pixel * pixels = (Pixel *) malloc(size * sizeof(Pixel));
     fseek(tmp, 54, SEEK_SET);
 
+    int padding;
+    if (bitmap_data->width % 4 != 0) padding = 4 - (3 * bitmap_data->width) % 4;
+    else padding = 0;
+
     for (int i = bitmap_data->height - 1; i >= 0; i--)
+    {
         for (int j = 0; j < bitmap_data->width; j++)
         {
             fread(&pixels[i * bitmap_data->width + j].B, 1, 1, tmp);
             fread(&pixels[i * bitmap_data->width + j].G, 1, 1, tmp);
             fread(&pixels[i * bitmap_data->width + j].R, 1, 1, tmp);
         }
+        fseek(tmp, padding, SEEK_CUR);
+    }
     return pixels;
 }
 
