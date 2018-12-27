@@ -10,11 +10,9 @@ typedef struct BMP_info {
     unsigned char * header;
 } BMP_info;
 
-void load_out_BMP(const char * BMP_name);
-unsigned char check_file_error_null(FILE * tmp);
-unsigned char check_memory_allocation(const void * data);
-unsigned char * load_in_BMP(const char * BMP_name);
+Pixel * load_in_BMP(const char * BMP_name);
 double * chi_squared_result(Pixel * bitmap_array, unsigned long size);
+void load_out_BMP(const char * BMP_name, Pixel * BMP_liniar, BMP_info * bitmap_data);
 void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size);
 
 void encrypt_file(const char * BMP_initial, const char * BMP_encrypt, const char * secret_key);
@@ -22,8 +20,10 @@ void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char
 
 BMP_info * get_bitmap_data(FILE * tmp);
 void xorshift32(unsigned int * current_state);
+unsigned char check_file_error_null(FILE * tmp);
 Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2);
 Pixel pixel_xor_uint(Pixel pixel, unsigned int uint);
+unsigned char check_memory_allocation(const void * data);
 Pixel * liniar_bitmap(FILE * tmp, BMP_info * bitmap_data);
 unsigned long * inverse_permutation(unsigned long * sequence, unsigned long size);
 void display_result_image(FILE * out, Pixel * image_array, BMP_info * bitmap_data);
@@ -35,15 +35,19 @@ void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequen
 
 int main()
 {
-    encrypt_file("peppers.bmp", "test.bmp", "secret_key.txt");
+    //encrypt_file("peppers.bmp", "enc_peppers.bmp", "secret_key.txt");
+
+    encrypt_file("test.bmp", "enc_test.bmp", "secret_key.txt");
+    decrypt_file("enc_test.bmp", "dec_test.bmp", "secret_key.txt");
 }
 
 void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned long size)
 {
     double * original_chi_squared = chi_squared_result(original_bitmap, size);
     double * encrypted_chi_squared = chi_squared_result(encrypted_bitmap, size);
-    printf("chi squared test for initial bitmap: (%.2f, %.2f, %.2f)\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
-    printf("chi squared test for encrypted bitmap: (%.2f, %.2f, %.2f)\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
+    printf("chi squared test for initial bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
+    printf("chi squared test for encrypted bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
+    free(original_chi_squared); free(encrypted_chi_squared);
 }
 
 double * chi_squared_result(Pixel * bitmap_array, unsigned long size)
@@ -146,6 +150,7 @@ void create_cyphered_image(Pixel * shuffled_bitmap, unsigned int * random_sequen
         *(cyphered_image + i) = pixel_xor_uint(pixel_xor_pixel(*(cyphered_image + i - 1), *(shuffled_bitmap + i)), *(random_sequence + random_sequence_start + i));
 
     display_result_image(out, cyphered_image, bitmap_data);
+    chi_squared(shuffled_bitmap, cyphered_image, random_sequence_start);
 }
 
 Pixel * create_decyphered_image(Pixel * cyphered_bitmap, unsigned int * random_sequence, BMP_info * bitmap_data, FILE * secret_key)
@@ -312,23 +317,49 @@ unsigned char check_memory_allocation(const void * data)
     return 0;
 }
 
-unsigned char * load_in_BMP(const char * BMP_name)
+Pixel * load_in_BMP(const char * BMP_name)
 {
     FILE * BMP_file = fopen(BMP_name, "rb");
     if (check_file_error_null(BMP_file)) return NULL;
-
     BMP_info * bitmap_data = get_bitmap_data(BMP_file);
     fseek(BMP_file, 54, SEEK_SET);
-
-    unsigned char * BMP_liniar = (unsigned char *) malloc(bitmap_data->width * bitmap_data->height);
+    int padding;
+    if (bitmap_data->width % 4 != 0) padding = 4 - (3 * bitmap_data->width) % 4;
+    else padding = 0;
+    Pixel * BMP_liniar = (Pixel *) malloc(bitmap_data->width * bitmap_data->height * sizeof(Pixel));
     if (check_memory_allocation(BMP_liniar)) return NULL;
-    fread(BMP_liniar, bitmap_data -> num_bytes - 54, 1, BMP_file);
+    for (int i = bitmap_data->height - 1; i >= 0; i--)
+    {
+        for (int j = 0; j < bitmap_data->width; j++)
+        {
+            fread(&BMP_liniar[i * bitmap_data->width + j].B, 1, 1, BMP_file);
+            fread(&BMP_liniar[i * bitmap_data->width + j].G, 1, 1, BMP_file);
+            fread(&BMP_liniar[i * bitmap_data->width + j].R, 1, 1, BMP_file);
+        }
+        fseek(BMP_file, padding, SEEK_CUR);
+    }
     fclose(BMP_file);
     return BMP_liniar;
 }
 
-void load_out_BMP(const char * BMP_name)
+void load_out_BMP(const char * BMP_name, Pixel * BMP_liniar, BMP_info * bitmap_data)
 {
     FILE * BMP_file = fopen(BMP_name, "wb");
-    if (check_memory_allocation(BMP_file)) return;
+    if (check_file_error_null(BMP_file)) return;
+    int padding;
+    if (bitmap_data->width % 4 != 0) padding = 4 - (3 * bitmap_data->width) % 4;
+    else padding = 0;
+    unsigned char BLANK;
+    fwrite(bitmap_data->header, 54, 1, BMP_file);
+    for (int i = bitmap_data->height - 1; i >= 0; i--)
+    {
+        for (int j = 0; j < bitmap_data->width; j++)
+        {
+            fwrite(&BMP_liniar[i * bitmap_data->width + j].B, 1, 1, BMP_file);
+            fwrite(&BMP_liniar[i * bitmap_data->width + j].G, 1, 1, BMP_file);
+            fwrite(&BMP_liniar[i * bitmap_data->width + j].R, 1, 1, BMP_file);
+        }
+        fwrite(&BLANK, 1, padding, BMP_file);
+    }
+    fclose(BMP_file);
 }

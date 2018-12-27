@@ -32,6 +32,7 @@ void grayscale_image(char* nume_fisier_sursa,char* nume_fisier_destinatie)
 	while(fread(&c,1,1,fin)==1)
 	{
 		fwrite(&c,1,1,fout);
+		fflush(fout);
 	}
 	fclose(fin);
 
@@ -57,6 +58,7 @@ void grayscale_image(char* nume_fisier_sursa,char* nume_fisier_destinatie)
 			pRGB[0] = pRGB[1] = pRGB[2] = aux;
         	fseek(fout, -3, SEEK_CUR);
         	fwrite(pRGB, 3, 1, fout);
+        	fflush(fout);
 		}
 		fseek(fout,padding,SEEK_CUR);
 	}
