@@ -1,7 +1,6 @@
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
+#include "crypting_decrypting.c"
 
 #define RED 0
 #define YELLOW 1
@@ -32,10 +31,6 @@ typedef struct Size_of_Window_List {
     unsigned long size;
 } Size_of_Window_List;
 
-typedef struct Pixel {
-    unsigned char R, G, B;
-} Pixel;
-
 typedef struct BMP_info {
     unsigned int num_bytes, width, height;
     unsigned short digit;
@@ -44,11 +39,11 @@ typedef struct BMP_info {
 
 void recongnize_patterns(int num_of_arguments, ...);
 
-BMP_info * get_bitmap_data(FILE * tmp, short digit);
+BMP_info * get_bitmap_info(FILE * tmp, short digit);
 Pixel ** load_image(FILE * tmp, BMP_info * bitmap_data);
 void push(Window_List ** start_window, Window * add_window);
 Pixel ** grayscale_image(Pixel ** main_image, BMP_info * bitmap_data);
-void display_result_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out);
+void display_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out);
 void remove_overlaps(Window * window_array, unsigned long ** num_of_windows, BMP_info * template_data);
 void border_window(Pixel ** main_image, Window * window_center, BMP_info * template_data, Pixel * color);
 void add_borders(Pixel ** main_image, Window * patterns_found, BMP_info * template_data, unsigned long num_of_windows);
@@ -72,17 +67,7 @@ unsigned char check_memory_allocation(const void * data);
 void init_coords_for_window(unsigned int * start_i, unsigned int * start_j, unsigned int * end_i, unsigned int * end_j, Window * window_center, BMP_info * template_data);
 void free_memory(Pixel ** main_image, Pixel ** main_image_grayscale, Pixel *** template_images, BMP_info * main_bitmap_data, BMP_info * templates_bitmap_data[], Window * patterns_found, short num_of_digits);
 
-int main()
-{
-    //recongnize_patterns(12, "test.bmp", "found_patterns.bmp","cifra0.bmp", "cifra1.bmp",
-    // "cifra2.bmp", "cifra3.bmp", "cifra4.bmp", "cifra5.bmp", "cifra6.bmp",
-    // "cifra7.bmp", "cifra8.bmp" , "cifra9.bmp");
-
-     recongnize_patterns(12, "dec_test.bmp", "found_patterns.bmp","cifra0.bmp", "cifra1.bmp",
-     "cifra2.bmp", "cifra3.bmp", "cifra4.bmp", "cifra5.bmp", "cifra6.bmp",
-     "cifra7.bmp", "cifra8.bmp" , "cifra9.bmp");
-}
-
+// implementation of functions
 void recongnize_patterns(int num_of_arguments, ...)
 {
     va_list argument_list;
@@ -104,10 +89,10 @@ void recongnize_patterns(int num_of_arguments, ...)
     }
 
     // create matrix of data and file information for bitmap image and templates
-    BMP_info * main_bitmap_data = get_bitmap_data(main_bitmap, 0);                                                                                              
+    BMP_info * main_bitmap_data = get_bitmap_info(main_bitmap, 0);                                                                                              
     BMP_info * templates_bitmap_data[num_of_arguments - 2];                                                                                                     
     for (short digit = 0; digit < num_of_arguments - 2; digit++)
-        templates_bitmap_data[digit] = get_bitmap_data(templates_bitmap[digit], digit);
+        templates_bitmap_data[digit] = get_bitmap_info(templates_bitmap[digit], digit);
 
     Pixel ** main_image = load_image(main_bitmap, main_bitmap_data);
     Pixel ** main_image_grayscale = grayscale_image(main_image, main_bitmap_data);                                                                                    
@@ -133,8 +118,8 @@ void recongnize_patterns(int num_of_arguments, ...)
     add_borders(main_image, patterns_found, templates_bitmap_data[0], num_of_correlations);
 
     // display result bitmap
-    display_result_image(main_image, main_bitmap_data, result_bitmap);
-    printf("Done :)\n");
+    display_image(main_image, main_bitmap_data, result_bitmap);
+    printf("Done! (^_^)\n");
     
     // closing files
     fclose(main_bitmap); fclose(result_bitmap);
@@ -145,7 +130,7 @@ void recongnize_patterns(int num_of_arguments, ...)
     free_memory(main_image, main_image_grayscale, template_images, main_bitmap_data, templates_bitmap_data, patterns_found, num_of_arguments - 2);
 }
 
-void display_result_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out)
+void display_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out)
 {
     int padding;
     if (main_bitmap_data->width % 4 != 0) padding = 4 - (3 * main_bitmap_data->width) % 4;
@@ -413,7 +398,7 @@ Pixel ** grayscale_image(Pixel ** main_image, BMP_info * bitmap_data)
     return grayscale_bitmap;
 }                                                                                          
 
-BMP_info * get_bitmap_data(FILE * tmp, short digit)
+BMP_info * get_bitmap_info(FILE * tmp, short digit)
 {
     BMP_info * bitmap_data = (BMP_info *) malloc(sizeof(BMP_info));
     if (check_memory_allocation(bitmap_data)) return NULL;
@@ -499,24 +484,4 @@ void push(Window_List ** start_window, Window * add_window)
     iteration_copy->next_window = (Window_List *) malloc(sizeof(Window_List));
     iteration_copy->next_window->window = add_window;
     iteration_copy->next_window->next_window = NULL;
-}
-
-unsigned char check_file_error_null(FILE * tmp)
-{
-    if (!tmp)
-    {
-        printf("\nFile not found\n");
-        return 1;
-    }
-    return 0;
-}
-
-unsigned char check_memory_allocation(const void * data)
-{
-    if (!data)
-    {
-        printf("Couldn't allocate memory");
-        return 1;
-    }
-    return 0;
 }
