@@ -196,8 +196,8 @@ int compare_correlations(const void * Window1, const void * Window2)
 
 void remove_overlaps(Window * window_array, unsigned long ** num_of_windows, BMP_info * template_data)
 {
-    for (unsigned long i = 1; i < **num_of_windows; i++)
-        for (unsigned long j = 0; j < i; j++)
+    for (unsigned long i = 0; i < **num_of_windows - 1; i++)
+        for (unsigned long j = i + 1; j < **num_of_windows; j++)
         {
             if (overlap(window_array[i], window_array[j], template_data) > OVERLAP)
             {
