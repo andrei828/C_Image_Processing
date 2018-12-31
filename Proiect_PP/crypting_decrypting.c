@@ -15,10 +15,8 @@ void decrypt_file(const char * BMP_encrypt, const char * BMP_decrypt, const char
 
 BMP_data * get_bitmap_data(FILE * tmp);
 void xorshift32(unsigned int * current_state);
-unsigned char check_file_error_null(FILE * tmp);
 Pixel pixel_xor_pixel(Pixel pixel1, Pixel pixel2);
 Pixel pixel_xor_uint(Pixel pixel, unsigned int uint);
-unsigned char check_memory_allocation(const void * data);
 Pixel * liniar_bitmap(FILE * tmp, BMP_data * bitmap_data);
 unsigned long * inverse_permutation(unsigned long * sequence, unsigned long size);
 void display_result_image(FILE * out, Pixel * image_array, BMP_data * bitmap_data);

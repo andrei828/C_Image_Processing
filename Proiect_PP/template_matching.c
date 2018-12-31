@@ -44,7 +44,6 @@ Pixel ** load_image(FILE * tmp, BMP_info * bitmap_data);
 void push(Window_List ** start_window, Window * add_window);
 Pixel ** grayscale_image(Pixel ** main_image, BMP_info * bitmap_data);
 void display_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out);
-void remove_overlaps(Window * window_array, unsigned long ** num_of_windows, BMP_info * template_data);
 void border_window(Pixel ** main_image, Window * window_center, BMP_info * template_data, Pixel * color);
 void add_borders(Pixel ** main_image, Window * patterns_found, BMP_info * template_data, unsigned long num_of_windows);
 
@@ -52,6 +51,7 @@ int compare_correlations(const void * Window1, const void * Window2);
 double overlap(Window Window1, Window Window2, BMP_info * template_data);
 unsigned long reunion(Window Window1, Window Window2, BMP_info * template_data);
 unsigned long intersection(Window Window1, Window Window2, BMP_info * template_data);
+void remove_overlaps(Window * window_array, unsigned long ** num_of_windows, BMP_info * template_data);
 Window * create_array_correlations(Size_of_Window_List * size_of_window_list[], unsigned long num_of_correlations, short num_of_digits);
 Window * remove_non_maxims(Size_of_Window_List * size_of_window_list[], BMP_info * template_data, unsigned long * num_of_correlations, short num_of_digits);
 
@@ -62,8 +62,6 @@ double main_deviation_of_pixel_intensity(Pixel ** main_image, Window * window_ce
 Size_of_Window_List * calculate_correlation(Pixel ** main_image, Pixel ** template_image, BMP_info * main_image_data, BMP_info * template_image_data, double precision);
 
 Pixel * init_color_palette();
-unsigned char check_file_error_null(FILE * tmp);
-unsigned char check_memory_allocation(const void * data);
 void init_coords_for_window(unsigned int * start_i, unsigned int * start_j, unsigned int * end_i, unsigned int * end_j, Window * window_center, BMP_info * template_data);
 void free_memory(Pixel ** main_image, Pixel ** main_image_grayscale, Pixel *** template_images, BMP_info * main_bitmap_data, BMP_info * templates_bitmap_data[], Window * patterns_found, short num_of_digits);
 
