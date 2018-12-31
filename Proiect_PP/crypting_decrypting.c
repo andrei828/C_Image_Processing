@@ -31,8 +31,8 @@ void chi_squared(Pixel * original_bitmap, Pixel * encrypted_bitmap, unsigned lon
 {
     double * original_chi_squared = chi_squared_result(original_bitmap, size);
     double * encrypted_chi_squared = chi_squared_result(encrypted_bitmap, size);
-    printf("chi squared test for initial bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
-    printf("chi squared test for encrypted bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
+    printf("\nchi squared test for initial bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n", *original_chi_squared, *(original_chi_squared + 1), *(original_chi_squared + 2));
+    printf("chi squared test for encrypted bitmap:\nR: %.2f\nG: %.2f\nB: %.2f\n\n", *encrypted_chi_squared, *(encrypted_chi_squared + 1), *(encrypted_chi_squared + 2));
     free(original_chi_squared); free(encrypted_chi_squared);
 }
 

@@ -37,7 +37,7 @@ typedef struct BMP_info {
     unsigned char * header;
 } BMP_info;
 
-void recongnize_patterns(int num_of_arguments, ...);
+void recongnize_patterns(int num_of_templates, char * main_bmp, char * result_bmp, char ** templates_bmp);
 
 BMP_info * get_bitmap_info(FILE * tmp, short digit);
 Pixel ** load_image(FILE * tmp, BMP_info * bitmap_data);
@@ -66,43 +66,40 @@ void init_coords_for_window(unsigned int * start_i, unsigned int * start_j, unsi
 void free_memory(Pixel ** main_image, Pixel ** main_image_grayscale, Pixel *** template_images, BMP_info * main_bitmap_data, BMP_info * templates_bitmap_data[], Window * patterns_found, short num_of_digits);
 
 // implementation of functions
-void recongnize_patterns(int num_of_arguments, ...)
+void recongnize_patterns(int num_of_templates, char * main_bmp, char * result_bmp, char ** templates_bmp)
 {
-    va_list argument_list;
-    va_start(argument_list, num_of_arguments);
-
     // first argument is the bitmap where template matching happens
-    FILE * main_bitmap = fopen(va_arg(argument_list, const char *), "rb");
+    FILE * main_bitmap = fopen(main_bmp, "rb");
     if (check_file_error_null(main_bitmap)) return;
 
-    FILE * result_bitmap = fopen(va_arg(argument_list, const char *), "wb");
+    FILE * result_bitmap = fopen(result_bmp, "wb");
     if (check_file_error_null(result_bitmap)) return;
 
     // next argument are the names of the template files
-    FILE * templates_bitmap[num_of_arguments - 2];
-    for (int i = 0; i < num_of_arguments - 2; i++)
+    FILE * templates_bitmap[num_of_templates];
+    for (int i = 0; i < num_of_templates; i++)
     {
-        templates_bitmap[i] = fopen(va_arg(argument_list, const char *), "rb");
+        templates_bitmap[i] = fopen(templates_bmp[i], "rb");
         if (check_file_error_null(templates_bitmap[i])) return;
     }
 
     // create matrix of data and file information for bitmap image and templates
     BMP_info * main_bitmap_data = get_bitmap_info(main_bitmap, 0);                                                                                              
-    BMP_info * templates_bitmap_data[num_of_arguments - 2];                                                                                                     
-    for (short digit = 0; digit < num_of_arguments - 2; digit++)
+    BMP_info * templates_bitmap_data[num_of_templates];                                                                                                     
+    for (short digit = 0; digit < num_of_templates; digit++)
         templates_bitmap_data[digit] = get_bitmap_info(templates_bitmap[digit], digit);
 
     Pixel ** main_image = load_image(main_bitmap, main_bitmap_data);
     Pixel ** main_image_grayscale = grayscale_image(main_image, main_bitmap_data);                                                                                    
-    Pixel *** template_images = (Pixel ***) malloc((num_of_arguments - 2) * sizeof(Pixel **));                                                                  
-    for (short digit = 0; digit < num_of_arguments - 2; digit++)
+    Pixel *** template_images = (Pixel ***) malloc((num_of_templates) * sizeof(Pixel **));                                                                  
+    for (short digit = 0; digit < num_of_templates; digit++)
         template_images[digit] = load_image(templates_bitmap[digit], templates_bitmap_data[digit]);                                                             
     
     // calculate correlation between image and templates
     Size_of_Window_List * size_of_window_list[10];
     unsigned long num_of_correlations = 0;
     printf("Finding all relevant patterns...\n");
-    for (short digit = 0; digit < num_of_arguments - 2; digit++)
+    for (short digit = 0; digit < num_of_templates; digit++)
     {
         size_of_window_list[digit] = calculate_correlation(main_image_grayscale, template_images[digit], main_bitmap_data, templates_bitmap_data[digit], PRECISION);      
         num_of_correlations += size_of_window_list[digit]->size;
@@ -110,22 +107,22 @@ void recongnize_patterns(int num_of_arguments, ...)
 
     // eliminate non maxims
     printf("Removing non maxims...\n");
-    Window * patterns_found = remove_non_maxims(size_of_window_list, templates_bitmap_data[0], &num_of_correlations, num_of_arguments - 2);                     
+    Window * patterns_found = remove_non_maxims(size_of_window_list, templates_bitmap_data[0], &num_of_correlations, num_of_templates);                     
 
     // add borders to main image where template correlations are found
     add_borders(main_image, patterns_found, templates_bitmap_data[0], num_of_correlations);
 
     // display result bitmap
     display_image(main_image, main_bitmap_data, result_bitmap);
-    printf("Done! (^_^)\n");
+    printf("Done! (^_^)\n\n");
     
     // closing files
     fclose(main_bitmap); fclose(result_bitmap);
-    for (int i = 0; i < num_of_arguments - 2; i++) 
+    for (int i = 0; i < num_of_templates; i++) 
         fclose(templates_bitmap[i]);
     
     // freeing memory
-    free_memory(main_image, main_image_grayscale, template_images, main_bitmap_data, templates_bitmap_data, patterns_found, num_of_arguments - 2);
+    free_memory(main_image, main_image_grayscale, template_images, main_bitmap_data, templates_bitmap_data, patterns_found, num_of_templates);
 }
 
 void display_image(Pixel ** main_image, BMP_info * main_bitmap_data, FILE * out)
