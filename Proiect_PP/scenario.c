@@ -38,21 +38,21 @@ int main()
 
 void crypt_choice(char * path, char * destination, char * key, FILE * in)
 {
-    fscanf(in, "%40s", path);
+    fscanf(in, "Criptare:\n%40s", path);
     fscanf(in, "%40s", destination);
-    fscanf(in, "%40s", key);
+    fscanf(in, "%40s\n", key);
 }
 
 void decrypt_choice(char * path, char * destination, char * key, FILE * in)
 {
-    fscanf(in, "%40s", path);
+    fscanf(in, "Decriptare:\n%40s", path);
     fscanf(in, "%40s", destination);
-    fscanf(in, "%40s", key);
+    fscanf(in, "%40s\n", key);
 }
 
 void patterns_choice(int * num_of_templates, char * main, char * found, char ** templates, FILE * in)
 {
-    fscanf(in, "%40s", main);
+    fscanf(in, "Recunoastere patternuri:\n%40s", main);
     fscanf(in, "%40s", found);
     fscanf(in, "%d", num_of_templates);
     for (int i = 0; i < *num_of_templates; i++)

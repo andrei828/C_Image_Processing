@@ -1,9 +1,14 @@
+Criptare:
 images/peppers/peppers.bmp
 images/peppers/enc_peppers.bmp
 secret_key.txt
+
+Decriptare:
 images/peppers/enc_peppers.bmp
 images/peppers/dec_peppers.bmp
 secret_key.txt
+
+Recunoastere patternuri:
 images/digits.bmp
 images/found_patterns.bmp
 10
