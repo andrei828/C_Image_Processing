@@ -13,3 +13,8 @@ Besides the two main features, there are also a few files for experimenting with
 | lower_brightness.c | Lowers the brightness of an image given as input. |
 | negative_image.c | Inverts the values of all pixels. |
 | picture_in_picture.c | Overwrites a picture on top of another picture. |
+# Demo
+> All images can be found inside the **Encryption & Image recognition/images** directory.
+
+#### For image encryption/decryption
+![Original](https://github.com/andrei828/C_Image_Processing/blob/master/Encryption%20%26%20Image%20recognition/images/peppers/peppers.bmp=200x200)
