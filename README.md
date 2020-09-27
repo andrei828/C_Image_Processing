@@ -18,3 +18,4 @@ Besides the two main features, there are also a few files for experimenting with
 
 #### For image encryption/decryption
 ![Original](https://github.com/andrei828/C_Image_Processing/blob/master/Encryption%20%26%20Image%20recognition/images/peppers/peppers.bmp) <!-- .element height="100px" width="100px" -->
+<img src="https://camo.githubusercontent.com/331400aee821efda2e36ee9b3bc8bce93b975109/68747470733a2f2f6779617a6f2e636f6d2f65623563353734316236613961313663363932313730613431613439633835382e706e67" alt="" data-canonical-src="https://github.com/andrei828/C_Image_Processing/blob/master/Encryption%20%26%20Image%20recognition/images/peppers/peppers.bmp" width="200" height="400" />
