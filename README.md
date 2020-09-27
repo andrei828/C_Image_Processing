@@ -17,4 +17,4 @@ Besides the two main features, there are also a few files for experimenting with
 > All images can be found inside the **Encryption & Image recognition/images** directory.
 
 #### For image encryption/decryption
-![Original](https://github.com/andrei828/C_Image_Processing/blob/master/Encryption%20%26%20Image%20recognition/images/peppers/peppers.bmp | width=100)
+![Original](https://github.com/andrei828/C_Image_Processing/blob/master/Encryption%20%26%20Image%20recognition/images/peppers/peppers.bmp) <!-- .element height="50%" width="50%" -->
